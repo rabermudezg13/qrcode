@@ -1,166 +1,101 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Generador de QR con Imagen</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            max-width: 800px;
-            margin: 20px auto;
-            padding: 20px;
-            background-color: #f0f0f0;
-        }
-        .container {
-            background-color: white;
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        }
-        .form-group {
-            margin-bottom: 15px;
-        }
-        label {
-            display: block;
-            margin-bottom: 5px;
-            color: #34495e;
-            font-weight: bold;
-        }
-        input {
-            width: 100%;
-            padding: 8px;
-            margin-bottom: 10px;
-            border: 1px solid #bdc3c7;
-            border-radius: 4px;
-            box-sizing: border-box;
-        }
-        button {
-            background-color: #2ecc71;
-            color: white;
-            padding: 12px 24px;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 16px;
-            transition: background-color 0.3s;
-        }
-        button:hover {
-            background-color: #27ae60;
-        }
-        #qrResult {
-            margin-top: 20px;
-            text-align: center;
-        }
-        #downloadBtn {
-            margin-top: 10px;
-            background-color: #3498db;
-        }
-        #downloadBtn:hover {
-            background-color: #2980b9;
-        }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <h1>Generador de QR con Imagen</h1>
+// ... (resto del código HTML y CSS igual) ...
+
+<script>
+    let qrInstance = null;
+
+    function generateQR() {
+        const text = document.getElementById('text').value;
+        const size = parseInt(document.getElementById('size').value);
+        const logoInput = document.getElementById('logo');
         
-        <div class="form-group">
-            <label for="text">Texto o URL para el código QR:</label>
-            <input type="text" id="text" required>
-        </div>
+        if (!text) {
+            alert('Por favor ingresa un texto o URL');
+            return;
+        }
 
-        <div class="form-group">
-            <label for="logo">Selecciona una imagen para el centro (opcional):</label>
-            <input type="file" id="logo" accept="image/*">
-        </div>
-
-        <div class="form-group">
-            <label for="size">Tamaño del QR (px):</label>
-            <input type="number" id="size" value="300" min="100" max="1000">
-        </div>
-
-        <button onclick="generateQR()">Generar QR</button>
+        // Limpiar QR anterior
+        document.getElementById('qrcode').innerHTML = '';
         
-        <div id="qrResult">
-            <div id="qrcode"></div>
-            <button id="downloadBtn" style="display: none;" onclick="downloadQR()">Descargar QR</button>
-        </div>
-    </div>
+        // Crear nuevo QR
+        qrInstance = new QRCode(document.getElementById('qrcode'), {
+            text: text,
+            width: size,
+            height: size,
+            colorDark: '#000000',
+            colorLight: '#ffffff',
+            correctLevel: QRCode.CorrectLevel.H
+        });
 
-    <script>
-        let qrInstance = null;
-
-        function generateQR() {
-            const text = document.getElementById('text').value;
-            const size = parseInt(document.getElementById('size').value);
-            const logoInput = document.getElementById('logo');
-            
-            if (!text) {
-                alert('Por favor ingresa un texto o URL');
-                return;
-            }
-
-            // Limpiar QR anterior
-            document.getElementById('qrcode').innerHTML = '';
-            
-            // Crear nuevo QR
-            qrInstance = new QRCode(document.getElementById('qrcode'), {
-                text: text,
-                width: size,
-                height: size,
-                colorDark: '#000000',
-                colorLight: '#ffffff',
-                correctLevel: QRCode.CorrectLevel.H
-            });
-
-            // Si hay una imagen seleccionada
-            if (logoInput.files && logoInput.files[0]) {
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    const logo = new Image();
-                    logo.src = e.target.result;
-                    logo.onload = function() {
-                        // Esperar a que el QR se genere
-                        setTimeout(() => {
-                            addLogoToQR(logo, size);
-                        }, 50);
-                    };
+        // Si hay una imagen seleccionada
+        if (logoInput.files && logoInput.files[0]) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const logo = new Image();
+                logo.src = e.target.result;
+                logo.onload = function() {
+                    // Aumentamos el tiempo de espera para asegurar que el QR esté listo
+                    setTimeout(() => {
+                        addLogoToQR(logo, size);
+                    }, 200); // Aumentado a 200ms
                 };
-                reader.readAsDataURL(logoInput.files[0]);
-            }
-
-            document.getElementById('downloadBtn').style.display = 'inline-block';
+            };
+            reader.readAsDataURL(logoInput.files[0]);
         }
 
-        function addLogoToQR(logo, size) {
-            const canvas = document.querySelector('#qrcode canvas');
-            const ctx = canvas.getContext('2d');
+        document.getElementById('downloadBtn').style.display = 'inline-block';
+    }
 
-            // Calcular tamaño y posición del logo
-            const logoSize = size * 0.2; // Logo será 20% del tamaño del QR
-            const logoX = (size - logoSize) / 2;
-            const logoY = (size - logoSize) / 2;
-
-            // Dibujar fondo blanco para el logo
-            ctx.fillStyle = 'white';
-            ctx.fillRect(logoX, logoY, logoSize, logoSize);
-
-            // Dibujar el logo
-            ctx.drawImage(logo, logoX, logoY, logoSize, logoSize);
+    function addLogoToQR(logo, size) {
+        const canvas = document.querySelector('#qrcode canvas');
+        if (!canvas) {
+            setTimeout(() => addLogoToQR(logo, size), 100);
+            return;
         }
 
-        function downloadQR() {
-            const canvas = document.querySelector('#qrcode canvas');
-            const url = canvas.toDataURL('image/png');
-            const a = document.createElement('a');
-            a.download = 'qr-code.png';
-            a.href = url;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
+        const ctx = canvas.getContext('2d');
+
+        // Calcular tamaño y posición del logo
+        const logoSize = size * 0.25; // Aumentado a 25% del tamaño del QR
+        const logoX = (size - logoSize) / 2;
+        const logoY = (size - logoSize) / 2;
+
+        // Crear un área blanca para el logo
+        ctx.fillStyle = 'white';
+        ctx.fillRect(logoX - 2, logoY - 2, logoSize + 4, logoSize + 4);
+
+        // Dibujar el logo con bordes redondeados
+        ctx.save();
+        ctx.beginPath();
+        ctx.arc(logoX + logoSize/2, logoY + logoSize/2, logoSize/2, 0, Math.PI * 2, true);
+        ctx.closePath();
+        ctx.clip();
+
+        // Dibujar el logo
+        ctx.drawImage(logo, logoX, logoY, logoSize, logoSize);
+        
+        // Restaurar el contexto
+        ctx.restore();
+
+        // Agregar un borde al logo
+        ctx.beginPath();
+        ctx.arc(logoX + logoSize/2, logoY + logoSize/2, logoSize/2, 0, Math.PI * 2, true);
+        ctx.strokeStyle = '#fff';
+        ctx.lineWidth = 4;
+        ctx.stroke();
+    }
+
+    function downloadQR() {
+        const canvas = document.querySelector('#qrcode canvas');
+        if (!canvas) {
+            alert('Por favor, genera primero el código QR');
+            return;
         }
-    </script>
-</body>
-</html>
+        const url = canvas.toDataURL('image/png');
+        const a = document.createElement('a');
+        a.download = 'qr-code.png';
+        a.href = url;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+    }
+</script>
